@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WYSIWYG HTML Code Editor</title>
+  <meta name="description" content="A premium client-side HTML Editor with real-time code generation, syntax highlighting, and dark mode support.">
+  <link rel="stylesheet" href="editor-htmlcss/style.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body data-theme="dark">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-section">
+      <div class="logo-icon">&lt;&gt;</div>
+      <h1>HTML Editor</h1>
+    </div>
+    <div class="header-actions">
+      <button id="btn-undo" class="btn" disabled>
+        <i data-lucide="undo-2"></i>
+      </button>
+      <button id="btn-redo" class="btn" disabled>
+        <i data-lucide="redo-2"></i>
+      </button>
+      <div class="tool-separator"></div>
+      <div class="toggle-container">
+        <label class="switch">
+          <input type="checkbox" id="toggle-ignition-mode">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label" style="color: var(--accent); font-weight: 600;">Ignition Mode</span>
+      </div>
+      <div class="toggle-container">
+        <label class="switch">
+          <input type="checkbox" id="toggle-full-page">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label">Full HTML Page</span>
+      </div>
+      <div class="toggle-container" style="border-color: var(--accent);">
+        <label class="switch">
+          <input type="checkbox" id="toggle-preview-mode">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label" style="color: var(--accent); font-weight: 600;">Python Interpolation</span>
+      </div>
+      <div class="tool-separator"></div>
+      <button id="btn-clear" class="btn">
+        <i data-lucide="refresh-cw"></i> Reset
+      </button>
+      <button id="btn-copy" class="btn">
+        <i data-lucide="copy"></i> Copy Code
+      </button>
+      <button id="btn-download" class="btn btn-primary">
+        <i data-lucide="download"></i> Download
+      </button>
+    </div>
+  </header>
+
+  <!-- Formatting Toolbar -->
+  <div class="toolbar-container">
+    <!-- Headings & Size -->
+    <div class="tool-select-wrapper">
+      <select id="font-style" class="tool-select" data-tooltip="Heading styles">
+        <option value="" disabled selected>Style</option>
+        <option value="p">Paragraph</option>
+        <option value="h1">Heading 1</option>
+        <option value="h2">Heading 2</option>
+        <option value="h3">Heading 3</option>
+        <option value="h4">Heading 4</option>
+        <option value="h5">Heading 5</option>
+        <option value="h6">Heading 6</option>
+      </select>
+    </div>
+
+    <div class="tool-select-wrapper">
+      <select id="font-size" class="tool-select" data-tooltip="Font size">
+        <option value="" disabled selected>Size</option>
+        <option value="1">Smallest</option>
+        <option value="2">Smaller</option>
+        <option value="3">Normal</option>
+        <option value="4">Medium</option>
+        <option value="5">Large</option>
+        <option value="6">Larger</option>
+        <option value="7">Huge</option>
+      </select>
+    </div>
+
+    <div class="tool-separator"></div>
+
+    <!-- Text Formatting -->
+    <div class="toolbar-group">
+      <button id="btn-bold" class="tool-btn" data-tooltip="Bold">
+        <i data-lucide="bold"></i>
+      </button>
+      <button id="btn-italic" class="tool-btn" data-tooltip="Italic">
+        <i data-lucide="italic"></i>
+      </button>
+      <button id="btn-underline" class="tool-btn" data-tooltip="Underline">
+        <i data-lucide="underline"></i>
+      </button>
+      <button id="btn-strike" class="tool-btn" data-tooltip="Strikethrough">
+        <i data-lucide="strikethrough"></i>
+      </button>
+    </div>
+
+    <!-- Colors -->
+    <div class="toolbar-group">
+      <div class="color-picker-wrapper">
+        <button id="color-text" class="tool-btn" data-tooltip="Text Color">
+          <i data-lucide="baseline"></i>
+        </button>
+        <input type="color" id="text-forecolor-input" class="color-input-hidden" value="#000000">
+      </div>
+      <div class="color-picker-wrapper">
+        <button id="color-bg" class="tool-btn" data-tooltip="Background Color">
+          <i data-lucide="paint-bucket"></i>
+        </button>
+        <input type="color" id="text-bgcolor-input" class="color-input-hidden" value="#ffffff">
+      </div>
+    </div>
+
+    <!-- Alignment -->
+    <div class="toolbar-group">
+      <button id="btn-align-left" class="tool-btn" data-tooltip="Align Left">
+        <i data-lucide="align-left"></i>
+      </button>
+      <button id="btn-align-center" class="tool-btn" data-tooltip="Align Center">
+        <i data-lucide="align-center"></i>
+      </button>
+      <button id="btn-align-right" class="tool-btn" data-tooltip="Align Right">
+        <i data-lucide="align-right"></i>
+      </button>
+      <button id="btn-align-justify" class="tool-btn" data-tooltip="Justify">
+        <i data-lucide="align-justify"></i>
+      </button>
+    </div>
+
+    <!-- Lists & Blockquotes -->
+    <div class="toolbar-group">
+      <button id="btn-list-ul" class="tool-btn" data-tooltip="Unordered List">
+        <i data-lucide="list"></i>
+      </button>
+      <button id="btn-list-ol" class="tool-btn" data-tooltip="Ordered List">
+        <i data-lucide="list-ordered"></i>
+      </button>
+      <button id="btn-blockquote" class="tool-btn" data-tooltip="Blockquote">
+        <i data-lucide="quote"></i>
+      </button>
+    </div>
+
+    <!-- Insertions -->
+    <div class="toolbar-group">
+      <button id="btn-binding" class="tool-btn" data-tooltip="Insert Python Placeholder or Binding">
+        <i data-lucide="braces"></i>
+      </button>
+      <button id="btn-link" class="tool-btn" data-tooltip="Insert Link">
+        <i data-lucide="link"></i>
+      </button>
+      <button id="btn-image" class="tool-btn" data-tooltip="Insert Image">
+        <i data-lucide="image"></i>
+      </button>
+      <button id="btn-table" class="tool-btn" data-tooltip="Insert Table">
+        <i data-lucide="table"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Workspace Panels -->
+  <div class="workspace">
+    
+    <!-- Left panel (WYSIWYG Input) -->
+    <div id="left-panel" class="panel">
+      <div class="panel-header">
+        WYSIWYG Editor
+        <span style="font-size: 0.75rem; text-transform: none; color: var(--text-disabled)">Visual view</span>
+      </div>
+      <div class="editor-container">
+        <div id="wysiwyg-editor" class="wysiwyg-editor" contenteditable="true" spellcheck="true"></div>
+      </div>
+    </div>
+
+    <!-- Draggable Divider -->
+    <div id="panel-divider" class="panel-divider"></div>
+
+    <!-- Right panel (HTML Code Output) -->
+    <div id="right-panel" class="panel">
+      <div class="panel-header">
+        Generated HTML
+        <span style="font-size: 0.75rem; text-transform: none; color: var(--text-disabled)">Real-time raw code</span>
+      </div>
+      <div class="code-display-panel">
+        <div id="line-numbers" class="code-line-numbers">1</div>
+        <div class="code-viewer-container">
+          <pre><code id="code-viewer" class="code-viewer"></code></pre>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Draggable Divider 2 (Hidden by default) -->
+    <div id="panel-divider-2" class="panel-divider" style="display: none;"></div>
+    
+    <!-- Third Panel (Preview Variables) -->
+    <div id="preview-panel" class="panel" style="display: none; background-color: var(--bg-app);">
+      <div class="panel-header">
+        Python Variables
+        <span style="font-size: 0.75rem; text-transform: none; color: var(--text-disabled)">Live Interpolation</span>
+      </div>
+      <div id="preview-variables-container" style="flex: 1; overflow-y: auto; padding: 1.5rem;">
+        <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Define variable names and test values for placeholders found in your HTML to instantly preview them.
+        </div>
+        <div id="preview-variables-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <!-- Dynamically populated inputs go here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar Footer -->
+  <div class="status-bar">
+    <div class="status-stats">
+      <span id="word-count">0 words</span>
+      <span id="char-count">0 characters</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem">
+      <span>Auto-saved to Storage</span>
+      <button id="theme-toggle" class="btn btn-icon" data-tooltip="Switch theme">
+        <i data-lucide="sun"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Python Variable Modal -->
+  <div id="modal-python-var" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Insert Python Placeholder</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="python-var-type">Data Type</label>
+          <select id="python-var-type" class="form-control">
+            <option value="%s">String (%s)</option>
+            <option value="%d">Integer (%d)</option>
+            <option value="%.2f">Float (%.2f)</option>
+            <option value="%(name)s">Dictionary Mapping (%(name)s)</option>
+            <option value="{Property}">Ignition Property ({Property})</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="python-var-submit" class="btn btn-primary">Insert Placeholder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link Modal -->
+  <div id="modal-link" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Insert Link</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="link-url">URL</label>
+          <input type="text" id="link-url" class="form-control" placeholder="https://example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="link-text">Link Text</label>
+          <input type="text" id="link-text" class="form-control" placeholder="Display text (optional)">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="link-submit" class="btn btn-primary">Insert Link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div id="modal-image" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Insert Image</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="image-src">Image Source URL</label>
+          <input type="text" id="image-src" class="form-control" placeholder="https://example.com/image.png">
+        </div>
+        <div class="form-group" style="text-align: center; border: 1px dashed var(--border-color); padding: 0.75rem; border-radius: var(--radius-sm);">
+          <label for="image-upload" style="cursor: pointer; display: block;">
+            <i data-lucide="upload" style="vertical-align: middle; margin-right: 0.25rem;"></i>
+            Upload Local Image File
+          </label>
+          <input type="file" id="image-upload" accept="image/*" style="display: none;">
+        </div>
+        <div class="form-group">
+          <label for="image-alt">Alt Description</label>
+          <input type="text" id="image-alt" class="form-control" placeholder="Description for screen readers">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="image-width">Width (px)</label>
+            <input type="number" id="image-width" class="form-control" placeholder="Auto">
+          </div>
+          <div class="form-group">
+            <label for="image-height">Height (px)</label>
+            <input type="number" id="image-height" class="form-control" placeholder="Auto">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="image-submit" class="btn btn-primary">Insert Image</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Modal -->
+  <div id="modal-table" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Insert Table</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="table-rows">Rows</label>
+            <input type="number" id="table-rows" class="form-control" value="3" min="1" max="20">
+          </div>
+          <div class="form-group">
+            <label for="table-cols">Columns</label>
+            <input type="number" id="table-cols" class="form-control" value="3" min="1" max="20">
+          </div>
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+          <input type="checkbox" id="table-header" checked style="width: 1.1rem; height: 1.1rem; cursor: pointer;">
+          <label for="table-header" style="cursor: pointer; user-select: none;">Include Table Header Row</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="table-submit" class="btn btn-primary">Insert Table</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Context Menu -->
+  <div id="custom-context-menu" class="context-menu">
+    <div class="context-menu-item" id="ctx-bold"><i data-lucide="bold"></i> Bold (Ctrl+B)</div>
+    <div class="context-menu-item" id="ctx-italic"><i data-lucide="italic"></i> Italic (Ctrl+I)</div>
+    <div class="context-menu-item" id="ctx-underline"><i data-lucide="underline"></i> Underline (Ctrl+U)</div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" id="ctx-paste"><i data-lucide="clipboard-paste"></i> Paste (Ctrl+V)</div>
+    <div class="context-menu-divider" id="ctx-divider-table" style="display: none;"></div>
+    <div class="context-menu-item" id="ctx-edit-table" style="display: none;"><i data-lucide="settings"></i> Edit Table Properties</div>
+  </div>
+
+  <!-- Table Properties Modal -->
+  <div id="modal-table-properties" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit Table Properties</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="prop-table-bg">Table Background</label>
+            <input type="color" id="prop-table-bg" class="form-control" style="padding: 0; height: 32px; width: 100%;">
+          </div>
+          <div class="form-group">
+            <label for="prop-table-border">Table Border Color</label>
+            <input type="color" id="prop-table-border" class="form-control" style="padding: 0; height: 32px; width: 100%;">
+          </div>
+          <div class="form-group">
+            <label for="prop-cell-bg">Cell Background</label>
+            <input type="color" id="prop-cell-bg" class="form-control" style="padding: 0; height: 32px; width: 100%;">
+          </div>
+        </div>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0.5rem 0;">
+        <label style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">Structure</label>
+        <div class="form-row">
+          <button id="prop-add-row" class="btn" style="flex: 1;"><i data-lucide="plus-square"></i> Add Row</button>
+          <button id="prop-del-row" class="btn" style="flex: 1; color: var(--danger);"><i data-lucide="trash-2"></i> Del Row</button>
+        </div>
+        <div class="form-row">
+          <button id="prop-add-col" class="btn" style="flex: 1;"><i data-lucide="plus-square"></i> Add Col</button>
+          <button id="prop-del-col" class="btn" style="flex: 1; color: var(--danger);"><i data-lucide="trash-2"></i> Del Col</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn modal-close-btn" style="margin-right: auto;">Close</button>
+        <button id="prop-table-submit" class="btn btn-primary">Apply Colors</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS Logic -->
+  <script type="module" src="editor-htmljs/editor.js"></script>
+  <script>
+    // Load Lucide icons immediately
+    document.addEventListener("DOMContentLoaded", function() {
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    });
+  </script>
+</body>
+</html>
