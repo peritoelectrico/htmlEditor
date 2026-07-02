@@ -41,6 +41,25 @@ const colorText = document.getElementById('color-text');
 const colorBg = document.getElementById('color-bg');
 const textForeColorInput = document.getElementById('text-forecolor-input');
 const textBgColorInput = document.getElementById('text-bgcolor-input');
+const IGNITION_TEXT_COLORS = [
+  'black', 'blue', 'cyan', 'darkGray', 'gray', 'green', 'lightGray',
+  'magenta', 'orange', 'pink', 'red', 'white', 'yellow'
+];
+const IGNITION_COLOR_SWATCHES = {
+  black: '#000000',
+  blue: '#0000ff',
+  cyan: '#00ffff',
+  darkGray: '#404040',
+  gray: '#808080',
+  green: '#008000',
+  lightGray: '#c0c0c0',
+  magenta: '#ff00ff',
+  orange: '#ffa500',
+  pink: '#ffc0cb',
+  red: '#ff0000',
+  white: '#ffffff',
+  yellow: '#ffff00'
+};
 
 // Dropdowns
 const fontStyleSelect = document.getElementById('font-style');
@@ -289,18 +308,15 @@ function setupEditor() {
 
     toggleIgnitionMode.addEventListener('change', (e) => {
       if (toggleIgnitionMode.checked) {
-        if (!confirm('Switching to Ignition Mode will permanently remove standard HTML inline styles from your document. Do you want to continue?')) {
+        if (!confirm('Switching to Ignition Mode will permanently convert the editor content to Ignition-compatible HTML. Do you want to continue?')) {
           toggleIgnitionMode.checked = false;
           return;
         }
         enforceMutuallyExclusiveToggles('toggle-ignition-mode');
         
-        // Strip styles destructively from the visual editor
-        const styledElements = editor.querySelectorAll('[style]');
-        if (styledElements.length > 0) {
-          styledElements.forEach(el => el.removeAttribute('style'));
-          saveState(); // push to undo stack
-        }
+        const ignitionHTML = getCleanAndFormattedHTML(editor, true);
+        editor.innerHTML = ignitionHTML.replace(/^<html>\s*/i, '');
+        saveState();
       }
       updateIgnitionState();
       updateToolbarButtonStates(); // Update button visibility/disabled states
@@ -315,6 +331,13 @@ function setupEditor() {
     togglePreviewMode.addEventListener('change', () => {
       isLivePreviewActive = togglePreviewMode.checked;
       if (isLivePreviewActive) {
+        if (!confirm('Switching to Python Interpolation will change the generated code output into a Python body string and temporarily replace placeholders in the editor preview. Do you want to continue?')) {
+          togglePreviewMode.checked = false;
+          isLivePreviewActive = false;
+          updateOutput();
+          updateToolbarButtonStates();
+          return;
+        }
         enforceMutuallyExclusiveToggles('toggle-preview-mode');
         activateLivePreview();
       } else {
@@ -358,11 +381,11 @@ function updateToolbarButtonStates() {
   if (toggleIgnitionMode) {
     const isIgnition = toggleIgnitionMode.checked;
     
-    // Disable incompatible toolbar buttons
+    // Ignition supports text color via <font color="...">, but not CSS background highlighting.
     if (colorText) {
-      colorText.disabled = isIgnition;
-      colorText.style.opacity = isIgnition ? '0.4' : '1';
-      colorText.style.cursor = isIgnition ? 'not-allowed' : 'pointer';
+      colorText.disabled = false;
+      colorText.style.opacity = '1';
+      colorText.style.cursor = 'pointer';
     }
     if (colorBg) {
       colorBg.disabled = isIgnition;
@@ -381,6 +404,127 @@ function updateToolbarButtonStates() {
     if (ctxEditTable) ctxEditTable.style.display = isIgnition ? 'none' : 'block';
     if (ctxDividerTable) ctxDividerTable.style.display = isIgnition ? 'none' : 'block';
   }
+}
+
+function getIgnitionColorMenu() {
+  let menu = document.getElementById('ignition-color-menu');
+  if (menu) return menu;
+  
+  menu = document.createElement('div');
+  menu.id = 'ignition-color-menu';
+  menu.className = 'ignition-color-menu';
+  
+  IGNITION_TEXT_COLORS.forEach(colorName => {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = 'ignition-color-option';
+    option.dataset.color = colorName;
+    
+    const swatch = document.createElement('span');
+    swatch.className = 'ignition-color-swatch';
+    swatch.style.backgroundColor = IGNITION_COLOR_SWATCHES[colorName];
+    
+    const label = document.createElement('span');
+    label.textContent = colorName;
+    
+    option.appendChild(swatch);
+    option.appendChild(label);
+    option.addEventListener('click', () => {
+      applyIgnitionTextColor(colorName);
+      hideIgnitionColorMenu();
+      editor.focus();
+      updateOutput();
+      saveState();
+    });
+    
+    menu.appendChild(option);
+  });
+  
+  document.body.appendChild(menu);
+  return menu;
+}
+
+function applyIgnitionTextColor(colorName) {
+  editor.focus();
+  
+  if (lastSavedSelection) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(lastSavedSelection);
+  }
+  
+  const sel = window.getSelection();
+  if (sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    
+    if (!range.collapsed && editor.contains(range.commonAncestorContainer)) {
+      const font = document.createElement('font');
+      font.setAttribute('color', colorName);
+      font.appendChild(range.extractContents());
+      range.insertNode(font);
+      
+      const newRange = document.createRange();
+      newRange.setStartAfter(font);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      lastSavedSelection = newRange.cloneRange();
+      return;
+    }
+  }
+  
+  editor.innerHTML = `<font color="${colorName}">${editor.innerHTML}</font>`;
+}
+
+function showIgnitionColorMenu(anchor) {
+  const sel = window.getSelection();
+  if (sel.rangeCount > 0 && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    lastSavedSelection = sel.getRangeAt(0).cloneRange();
+  }
+  
+  const menu = getIgnitionColorMenu();
+  const rect = anchor.getBoundingClientRect();
+  
+  menu.style.left = `${rect.left}px`;
+  menu.style.top = `${rect.bottom + 6}px`;
+  menu.classList.add('active');
+}
+
+function hideIgnitionColorMenu() {
+  const menu = document.getElementById('ignition-color-menu');
+  if (menu) menu.classList.remove('active');
+}
+
+function resetToFactoryState() {
+  if (isLivePreviewActive) {
+    deactivateLivePreview();
+  }
+
+  editor.innerHTML = FACTORY_HTML;
+  mockVariables = {};
+  isLivePreviewActive = false;
+  lastSavedSelection = null;
+  currentEditingTable = null;
+  currentEditingCell = null;
+  currentEditingAnchor = null;
+  undoStack = [];
+  redoStack = [];
+  
+  if (toggleIgnitionMode) toggleIgnitionMode.checked = false;
+  if (toggleFullPage) {
+    toggleFullPage.checked = false;
+    toggleFullPage.disabled = false;
+  }
+  if (togglePreviewMode) togglePreviewMode.checked = false;
+  if (divider2) divider2.style.display = 'none';
+  if (previewPanel) previewPanel.style.display = 'none';
+  if (previewVariablesList) previewVariablesList.innerHTML = '';
+  if (contextMenu) contextMenu.classList.remove('active');
+  document.querySelectorAll('.modal-overlay.active').forEach(closeModal);
+  
+  updateOutput();
+  saveState();
+  editor.focus();
 }
 
 /**
@@ -406,6 +550,77 @@ function restoreState(isUndo) {
   updateToolbarButtonStates();
 }
 
+function isPythonInterpolationPlaceholder(rawVar) {
+  return rawVar && rawVar.startsWith('%');
+}
+
+function normalizePythonVarName(name, fallback) {
+  const cleaned = (name || fallback)
+    .trim()
+    .replace(/\W/g, '_')
+    .replace(/^(\d)/, '_$1');
+  
+  return cleaned || fallback;
+}
+
+function getDefaultMockVariableName(rawVar, index) {
+  const mappingMatch = rawVar.match(/^%\(([a-zA-Z0-9_]+)\)/);
+  if (mappingMatch) {
+    return mappingMatch[1];
+  }
+
+  const ignitionMatch = rawVar.match(/^\{([a-zA-Z0-9_.\s]+)\}$/);
+  if (ignitionMatch) {
+    const propertyName = ignitionMatch[1].trim().split(/[.\s]+/).pop();
+    return normalizePythonVarName(propertyName, `Var${index}`);
+  }
+
+  return `Var${index}`;
+}
+
+function toPythonTuplePlaceholder(rawVar) {
+  const mappingMatch = rawVar.match(/^%\([a-zA-Z0-9_]+\)((?:\.[0-9]+)?[sdiuxf])$/);
+  if (mappingMatch) {
+    return `%${mappingMatch[1]}`;
+  }
+
+  return rawVar;
+}
+
+function escapePythonTripleQuotedString(html) {
+  const placeholderTokens = [];
+  let protectedHTML = html.replace(/(%(?:\([a-zA-Z0-9_]+\))?(?:\.[0-9]+)?[sdiuxf])/g, (match) => {
+    const token = `__PY_PLACEHOLDER_${placeholderTokens.length}__`;
+    placeholderTokens.push({ token, value: match });
+    return token;
+  });
+
+  protectedHTML = protectedHTML
+    .replace(/\\/g, '\\\\')
+    .replace(/"""/g, '\\"\\"\\"')
+    .replace(/%/g, '%%');
+
+  placeholderTokens.forEach(({ token, value }) => {
+    protectedHTML = protectedHTML.replace(token, value);
+  });
+
+  return protectedHTML;
+}
+
+function buildPythonInterpolationCode(html, pyVars) {
+  const indentedHTML = escapePythonTripleQuotedString(html)
+    .split('\n')
+    .map(line => '    ' + line)
+    .join('\n');
+  let pyCode = `body = """\n<html>\n<body>\n${indentedHTML}\n</body>\n</html> """`;
+  
+  if (pyVars.length > 0) {
+    pyCode += ` % (${pyVars.join(', ')}${pyVars.length === 1 ? ',' : ''})`;
+  }
+  
+  return pyCode;
+}
+
 /**
  * Formats clean HTML, generates syntax highlighting, calculates stats and line numbers
  */
@@ -419,13 +634,15 @@ function updateOutput() {
   if (isLivePreviewActive) {
     sourceNode = editor.cloneNode(true);
     const pills = sourceNode.querySelectorAll('.mock-var');
-    pills.forEach(pill => {
+    pills.forEach((pill, index) => {
       const pId = pill.getAttribute('data-id');
-      if (mockVariables[pId] && mockVariables[pId].name) {
-        pyVars.push(mockVariables[pId].name);
-      }
       const rawVar = pill.getAttribute('data-raw');
-      const textNode = document.createTextNode(rawVar);
+      let outputVar = rawVar;
+      if (isPythonInterpolationPlaceholder(rawVar) && mockVariables[pId]) {
+        pyVars.push(normalizePythonVarName(mockVariables[pId].name, getDefaultMockVariableName(rawVar, index + 1)));
+        outputVar = toPythonTuplePlaceholder(rawVar);
+      }
+      const textNode = document.createTextNode(outputVar);
       pill.parentNode.replaceChild(textNode, pill);
     });
   }
@@ -436,13 +653,7 @@ function updateOutput() {
   let displayHTML = (toggleFullPage && toggleFullPage.checked && !isIgnitionMode) ? wrapInBoilerplate(cleanHTML) : cleanHTML;
   
   if (isLivePreviewActive) {
-    // Add indentation to all lines for python body
-    const indentedHTML = displayHTML.split('\n').map(line => '    ' + line).join('\n');
-    let pyCode = `body = """\n<html>\n<body>\n${indentedHTML}\n</body>\n</html> """`;
-    if (pyVars.length > 0) {
-      pyCode += ` % (${pyVars.join(', ')})`;
-    }
-    displayHTML = pyCode;
+    displayHTML = buildPythonInterpolationCode(displayHTML, pyVars);
   }
   
   // Update Syntax Highlight Output
@@ -515,21 +726,7 @@ function setupToolbar() {
   btnClear.addEventListener('click', (e) => {
     e.preventDefault();
     if (confirm('Are you sure you want to restore the factory default settings? This will erase all your current work.')) {
-      editor.innerHTML = FACTORY_HTML;
-      
-      // Reset toggles to factory defaults
-      if (toggleIgnitionMode) toggleIgnitionMode.checked = false;
-      if (toggleFullPage) {
-        toggleFullPage.checked = false;
-        toggleFullPage.disabled = false;
-      }
-      if (typeof updateToolbarButtonStates === 'function') {
-        updateToolbarButtonStates();
-      }
-      
-      updateOutput();
-      saveState();
-      editor.focus();
+      resetToFactoryState();
     }
   });
 
@@ -593,6 +790,11 @@ function setupToolbar() {
   // Custom Color Pickers
   colorText.addEventListener('click', (e) => {
     e.preventDefault();
+    if (toggleIgnitionMode && toggleIgnitionMode.checked) {
+      showIgnitionColorMenu(colorText);
+      return;
+    }
+    
     textForeColorInput.click();
   });
 
@@ -902,6 +1104,16 @@ function setupContextMenu() {
     if (e.target !== contextMenu && !contextMenu.contains(e.target)) {
       contextMenu.classList.remove('active');
     }
+    
+    const ignitionColorMenu = document.getElementById('ignition-color-menu');
+    if (
+      ignitionColorMenu &&
+      !ignitionColorMenu.contains(e.target) &&
+      e.target !== colorText &&
+      !colorText.contains(e.target)
+    ) {
+      hideIgnitionColorMenu();
+    }
   });
 
   // Context Menu Actions
@@ -1136,6 +1348,28 @@ function setupResizer() {
 function activateLivePreview() {
   if (divider2) divider2.style.display = 'block';
   if (previewPanel) previewPanel.style.display = 'flex';
+
+  const existingPills = Array.from(editor.querySelectorAll('.mock-var'));
+  if (existingPills.length > 0) {
+    const existingPlaceholderIds = existingPills.map((pill, index) => {
+      const pId = pill.getAttribute('data-id') || `var_${index}`;
+      const rawVar = pill.getAttribute('data-raw') || pill.textContent;
+      pill.setAttribute('data-id', pId);
+      pill.setAttribute('data-raw', rawVar);
+      
+      if (!mockVariables[pId]) {
+        mockVariables[pId] = {
+          raw: rawVar,
+          name: getDefaultMockVariableName(rawVar, index + 1),
+          value: pill.textContent || rawVar
+        };
+      }
+      
+      return pId;
+    });
+    renderPreviewPanel(existingPlaceholderIds);
+    return;
+  }
   
   // Regex to find Python string interpolation %s, %(name)s, %d, %.2f and {Property}
   const regex = /(%s|%d|%i|%f|%\.[0-9]+f|%\([a-zA-Z0-9_]+\)[sdiuxf]|{[a-zA-Z0-9_.\s]+})/g;
@@ -1175,7 +1409,7 @@ function activateLivePreview() {
         if (!mockVariables[pId]) {
           mockVariables[pId] = {
             raw: rawVar,
-            name: `Var${index}`,
+            name: getDefaultMockVariableName(rawVar, index),
             value: rawVar
           };
         } else {
@@ -1243,6 +1477,7 @@ function renderPreviewPanel(placeholders) {
   
   placeholders.forEach(pId => {
     const data = mockVariables[pId];
+    if (!data) return;
     
     const row = document.createElement('div');
     row.className = 'preview-var-row';
@@ -1251,8 +1486,8 @@ function renderPreviewPanel(placeholders) {
     const topLabel = document.createElement('div');
     topLabel.className = 'preview-var-label';
     topLabel.textContent = `Placeholder: ${data.raw}`;
-    
-    // Name Input Group
+
+    // Variable Name Input Group
     const nameGroup = document.createElement('div');
     nameGroup.style.display = 'flex';
     nameGroup.style.alignItems = 'center';
@@ -1267,12 +1502,12 @@ function renderPreviewPanel(placeholders) {
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'preview-var-input';
-    nameInput.placeholder = 'e.g. AlarmName';
+    nameInput.placeholder = 'e.g. alarmName';
     nameInput.value = data.name;
     
     nameInput.addEventListener('input', () => {
       mockVariables[pId].name = nameInput.value;
-      updateOutput(); // Refresh right panel tuple
+      updateOutput();
     });
     
     nameGroup.appendChild(nameLabel);
@@ -1285,7 +1520,7 @@ function renderPreviewPanel(placeholders) {
     valGroup.style.gap = '0.5rem';
     
     const valLabel = document.createElement('span');
-    valLabel.textContent = 'Value:';
+    valLabel.textContent = 'Test:';
     valLabel.style.fontSize = '0.75rem';
     valLabel.style.color = 'var(--text-muted)';
     valLabel.style.width = '40px';
