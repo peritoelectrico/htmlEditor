@@ -13,6 +13,13 @@ const SELF_CLOSING_TAGS = new Set([
   'link', 'meta', 'param', 'source', 'track', 'wbr'
 ]);
 
+const URL_ATTRIBUTES = new Set([
+  'action', 'background', 'cite', 'formaction', 'href', 'poster', 'src', 'xlink:href'
+]);
+
+const SAFE_URL_PATTERN = /^(?:(?:https?|mailto|tel):|\/|#|\?|\.{1,2}\/)/i;
+const SAFE_IMAGE_DATA_URL_PATTERN = /^data:image\/(?:gif|png|jpe?g|webp|svg\+xml);base64,/i;
+
 /**
  * Converts a contenteditable DOM element into clean, formatted, and indented HTML.
  * @param {HTMLElement} element - The WYSIWYG editor DOM node
@@ -29,6 +36,7 @@ export function getCleanAndFormattedHTML(element, isIgnitionMode = false) {
     // Strip scripts, styles, and links
     const scripts = targetElement.querySelectorAll('script, style, link');
     scripts.forEach(s => s.remove());
+    return formatIgnitionHTML(targetElement);
   }
   
   return formatNodeChildren(targetElement, 0, isIgnitionMode).trim();
@@ -36,6 +44,178 @@ export function getCleanAndFormattedHTML(element, isIgnitionMode = false) {
 
 function escapeTextNode(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function isSafeIgnitionAttribute(name, value) {
+  if (name === 'style' || name === 'srcdoc' || name.startsWith('on')) {
+    return false;
+  }
+
+  if (!URL_ATTRIBUTES.has(name)) {
+    return true;
+  }
+
+  const trimmedValue = value.trim();
+  if (trimmedValue === '') {
+    return true;
+  }
+
+  return SAFE_URL_PATTERN.test(trimmedValue) || SAFE_IMAGE_DATA_URL_PATTERN.test(trimmedValue);
+}
+
+function parseStyleAttribute(styleText) {
+  return (styleText || '').split(';').reduce((styles, declaration) => {
+    const separatorIndex = declaration.indexOf(':');
+    if (separatorIndex === -1) return styles;
+    
+    const property = declaration.slice(0, separatorIndex).trim().toLowerCase();
+    const value = declaration.slice(separatorIndex + 1).trim();
+    if (property && value) styles[property] = value;
+    
+    return styles;
+  }, {});
+}
+
+function isIgnitionBlockTag(tag) {
+  return ['address', 'article', 'aside', 'blockquote', 'div', 'footer', 'header', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'pre', 'section'].includes(tag);
+}
+
+const IGNITION_COLOR_NAMES = new Set([
+  'black', 'blue', 'cyan', 'darkgray', 'gray', 'green', 'lightgray',
+  'magenta', 'orange', 'pink', 'red', 'white', 'yellow'
+]);
+
+const IGNITION_HEX_TO_NAME = {
+  '#000000': 'black',
+  '#0000ff': 'blue',
+  '#00ffff': 'cyan',
+  '#404040': 'darkGray',
+  '#808080': 'gray',
+  '#008000': 'green',
+  '#00ff00': 'green',
+  '#c0c0c0': 'lightGray',
+  '#ff00ff': 'magenta',
+  '#ffa500': 'orange',
+  '#ffc0cb': 'pink',
+  '#ff0000': 'red',
+  '#ffffff': 'white',
+  '#ffff00': 'yellow'
+};
+
+function normalizeIgnitionColor(color) {
+  if (!color) return '';
+  const trimmed = color.trim();
+  const rgbMatch = trimmed.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  
+  if (rgbMatch) {
+    const hexColor = '#' + rgbMatch.slice(1, 4)
+      .map(part => Math.max(0, Math.min(255, Number(part))).toString(16).padStart(2, '0'))
+      .join('');
+    return IGNITION_HEX_TO_NAME[hexColor] || 'black';
+  }
+  
+  const lowerColor = trimmed.toLowerCase();
+  if (IGNITION_COLOR_NAMES.has(lowerColor)) {
+    return lowerColor === 'darkgray' ? 'darkGray' : lowerColor === 'lightgray' ? 'lightGray' : lowerColor;
+  }
+  
+  return IGNITION_HEX_TO_NAME[lowerColor] || 'black';
+}
+
+function wrapIgnitionInline(html, wrappers) {
+  return wrappers.reduceRight((wrapped, wrapper) => {
+    if (wrapper.tag === 'font') {
+      return `<font color="${escapeAttributeValue(wrapper.color)}">${wrapped}</font>`;
+    }
+    return `<${wrapper.tag}>${wrapped}</${wrapper.tag}>`;
+  }, html);
+}
+
+function formatIgnitionHTML(element) {
+  const body = formatIgnitionChildren(element).replace(/(?:<br>\s*)+$/g, '').trim();
+  return body ? `<html>\n${body}` : '<html>';
+}
+
+function formatIgnitionChildren(element) {
+  return Array.from(element.childNodes).map(formatIgnitionNode).join('');
+}
+
+function formatIgnitionNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return escapeTextNode(node.textContent).replace(/\s+/g, ' ');
+  }
+  
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return '';
+  }
+  
+  const tag = node.tagName.toLowerCase();
+  const styles = parseStyleAttribute(node.getAttribute('style'));
+  const wrappers = [];
+  let innerHTML = formatIgnitionChildren(node);
+  
+  if (!innerHTML.trim() && tag !== 'br') {
+    return '';
+  }
+  
+  if (styles.color) {
+    wrappers.push({ tag: 'font', color: normalizeIgnitionColor(styles.color) });
+  }
+  
+  if (styles['text-align'] && styles['text-align'].toLowerCase() === 'center') {
+    wrappers.push({ tag: 'center' });
+  }
+  
+  if (styles['text-decoration']) {
+    const decoration = styles['text-decoration'].toLowerCase();
+    if (decoration.includes('underline')) wrappers.push({ tag: 'u' });
+    if (decoration.includes('line-through')) wrappers.push({ tag: 's' });
+  }
+  
+  switch (tag) {
+    case 'html':
+    case 'body':
+    case 'span':
+    case 'font':
+      if (tag === 'font' && node.getAttribute('color')) {
+        wrappers.push({ tag: 'font', color: normalizeIgnitionColor(node.getAttribute('color')) });
+      }
+      return wrapIgnitionInline(innerHTML, wrappers);
+    case 'b':
+    case 'strong':
+      return wrapIgnitionInline(innerHTML, [...wrappers, { tag: 'b' }]);
+    case 'u':
+      return wrapIgnitionInline(innerHTML, [...wrappers, { tag: 'u' }]);
+    case 's':
+    case 'strike':
+    case 'del':
+      return wrapIgnitionInline(innerHTML, [...wrappers, { tag: 's' }]);
+    case 'br':
+      return '<br>\n';
+    case 'center':
+      return wrapIgnitionInline(innerHTML, [...wrappers, { tag: 'center' }]);
+    case 'ul':
+    case 'ol':
+      return `<${tag}>\n${innerHTML.trim()}\n</${tag}>\n`;
+    case 'li':
+      return `<li>${wrapIgnitionInline(innerHTML, wrappers)}</li>\n`;
+    case 'tr':
+      return `${innerHTML.trim()}<br>\n`;
+    case 'td':
+    case 'th':
+      return `${wrapIgnitionInline(innerHTML, wrappers)} `;
+    case 'table':
+    case 'thead':
+    case 'tbody':
+      return innerHTML;
+    case 'a':
+      return wrapIgnitionInline(innerHTML, wrappers);
+    default:
+      if (isIgnitionBlockTag(tag)) {
+        return `${wrapIgnitionInline(innerHTML, wrappers)}<br>\n`;
+      }
+      return wrapIgnitionInline(innerHTML, wrappers);
+  }
 }
 
 /**
@@ -92,7 +272,7 @@ function formatNodeChildren(element, indentLevel, isIgnitionMode = false) {
           name !== 'contenteditable' &&
           name !== 'g-id'
         ) {
-          if (isIgnitionMode && name === 'style') continue;
+          if (isIgnitionMode && !isSafeIgnitionAttribute(name, attr.value)) continue;
           
           attributes.push(`${attr.name}="${escapeAttributeValue(attr.value)}"`);
         }
@@ -416,4 +596,3 @@ ${innerHTML.split('\n').map(line => '    ' + line).join('\n')}
 </body>
 </html>`;
 }
-
