@@ -278,6 +278,17 @@ input:disabled + .slider {
   color: var(--text-main);
 }
 
+.tool-btn:disabled,
+.tool-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tool-btn:disabled:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
 .tool-btn.active {
   background-color: rgba(var(--accent-rgb), 0.15);
   color: var(--accent);
@@ -470,6 +481,23 @@ input:disabled + .slider {
   margin-bottom: 1rem;
 }
 
+.wysiwyg-editor hr {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+.wysiwyg-editor mark {
+  background-color: #fde68a;
+  color: #111827;
+  padding: 0.05rem 0.2rem;
+  border-radius: 3px;
+}
+
+.wysiwyg-editor small {
+  font-size: 0.85em;
+}
+
 /* Lists */
 .wysiwyg-editor ul, .wysiwyg-editor ol {
   margin-bottom: 1rem;
@@ -484,6 +512,21 @@ input:disabled + .slider {
   background-color: var(--bg-app);
   color: var(--text-muted);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.wysiwyg-editor details {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background-color: var(--bg-app);
+}
+
+.wysiwyg-editor summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
 }
 
 /* Code block */
@@ -525,6 +568,14 @@ input:disabled + .slider {
   font-weight: 600;
 }
 
+.wysiwyg-editor caption {
+  caption-side: top;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+  text-align: left;
+}
+
 /* Images */
 .wysiwyg-editor img {
   max-width: 100%;
@@ -532,6 +583,69 @@ input:disabled + .slider {
   border-radius: var(--radius-sm);
   margin-bottom: 1rem;
   display: block;
+}
+
+.wysiwyg-editor figure {
+  margin: 0 0 1rem 0;
+}
+
+.wysiwyg-editor figcaption {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: -0.5rem;
+}
+
+.wysiwyg-editor video,
+.wysiwyg-editor audio,
+.wysiwyg-editor iframe {
+  display: block;
+  max-width: 100%;
+  margin: 0 0 1rem 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.wysiwyg-editor iframe {
+  width: 100%;
+  min-height: 220px;
+  background-color: var(--bg-app);
+}
+
+.wysiwyg-editor dl {
+  margin-bottom: 1rem;
+}
+
+.wysiwyg-editor dt {
+  font-weight: 600;
+}
+
+.wysiwyg-editor dd {
+  margin-left: 1.25rem;
+  color: var(--text-muted);
+}
+
+.wysiwyg-editor section,
+.wysiwyg-editor article,
+.wysiwyg-editor aside,
+.wysiwyg-editor nav,
+.wysiwyg-editor address,
+.wysiwyg-editor form {
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.wysiwyg-editor input,
+.wysiwyg-editor textarea,
+.wysiwyg-editor select,
+.wysiwyg-editor button {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-app);
+  color: var(--text-main);
 }
 
 .wysiwyg-editor a {
