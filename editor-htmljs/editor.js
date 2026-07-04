@@ -64,6 +64,82 @@ const IGNITION_COLOR_SWATCHES = {
 // Dropdowns
 const fontStyleSelect = document.getElementById('font-style');
 const fontSizeSelect = document.getElementById('font-size');
+const fontFamilySelect = document.getElementById('font-family');
+const insertHtmlElementSelect = document.getElementById('insert-html-element');
+
+const SHARED_SPECIAL_MODE_DISABLED_IDS = [
+  'font-family',
+  'font-size',
+  'btn-subscript',
+  'btn-superscript',
+  'btn-mark',
+  'btn-small',
+  'btn-inline-code',
+  'btn-code-block',
+  'btn-hr',
+  'btn-link',
+  'btn-image',
+  'btn-table',
+  'insert-html-element'
+];
+
+const IGNITION_ONLY_DISABLED_IDS = [
+  'btn-italic',
+  'btn-align-right',
+  'btn-align-justify'
+];
+
+const SPECIAL_MODE_STRIP_SELECTORS = [
+  'audio',
+  'video',
+  'iframe',
+  'embed',
+  'object',
+  'form',
+  'fieldset',
+  'legend',
+  'label',
+  'input',
+  'textarea',
+  'select',
+  'option',
+  'button',
+  'details',
+  'summary',
+  'figure',
+  'figcaption',
+  'dl',
+  'dt',
+  'dd',
+  'code',
+  'mark',
+  'sub',
+  'sup',
+  'small',
+  'hr'
+].join(',');
+
+const IGNITION_STRIP_SELECTORS = [
+  SPECIAL_MODE_STRIP_SELECTORS,
+  'i',
+  'em'
+].join(',');
+
+const INSERT_SNIPPETS = {
+  details: '<details open><summary>Summary</summary><p>Additional details go here.</p></details><p><br></p>',
+  figure: '<figure><img src="https://example.com/image.png" alt="Description"><figcaption>Caption text</figcaption></figure><p><br></p>',
+  'definition-list': '<dl><dt>Term</dt><dd>Definition text</dd></dl><p><br></p>',
+  comment: '<!-- Comment text -->',
+  section: '<section><h2>Section Heading</h2><p>Section content.</p></section><p><br></p>',
+  article: '<article><h2>Article Heading</h2><p>Article content.</p></article><p><br></p>',
+  nav: '<nav><a href="#section">Section Link</a></nav><p><br></p>',
+  aside: '<aside><p>Related note or sidebar content.</p></aside><p><br></p>',
+  address: '<address>Contact name<br>email@example.com</address><p><br></p>',
+  video: '<video controls src="https://example.com/video.mp4">Your browser does not support the video element.</video><p><br></p>',
+  audio: '<audio controls src="https://example.com/audio.mp3">Your browser does not support the audio element.</audio><p><br></p>',
+  iframe: '<iframe src="https://example.com" title="Embedded content"></iframe><p><br></p>',
+  form: '<form action="#" method="post"><label>Name <input type="text" name="name"></label><button type="submit">Submit</button></form><p><br></p>'
+};
 
 // Modals
 const linkModal = document.getElementById('modal-link');
@@ -313,6 +389,7 @@ function setupEditor() {
           return;
         }
         enforceMutuallyExclusiveToggles('toggle-ignition-mode');
+        stripUnsupportedSpecialModeContent({ isIgnition: true });
         
         const ignitionHTML = getCleanAndFormattedHTML(editor, true);
         editor.innerHTML = ignitionHTML.replace(/^<html>\s*/i, '');
@@ -339,6 +416,8 @@ function setupEditor() {
           return;
         }
         enforceMutuallyExclusiveToggles('toggle-preview-mode');
+        stripUnsupportedSpecialModeContent();
+        saveState();
         activateLivePreview();
       } else {
         deactivateLivePreview();
@@ -378,8 +457,26 @@ function updateToolbarButtonStates() {
   btnUndo.style.opacity = btnUndo.disabled ? '0.4' : '1';
   btnRedo.style.opacity = btnRedo.disabled ? '0.4' : '1';
   
+  const isIgnition = toggleIgnitionMode && toggleIgnitionMode.checked;
+  const isSpecialMode = isIgnition || isLivePreviewActive;
+  
+  SHARED_SPECIAL_MODE_DISABLED_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = isSpecialMode;
+    el.style.opacity = isSpecialMode ? '0.4' : '1';
+    el.style.cursor = isSpecialMode ? 'not-allowed' : 'pointer';
+  });
+
+  IGNITION_ONLY_DISABLED_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = isIgnition;
+    el.style.opacity = isIgnition ? '0.4' : '1';
+    el.style.cursor = isIgnition ? 'not-allowed' : 'pointer';
+  });
+  
   if (toggleIgnitionMode) {
-    const isIgnition = toggleIgnitionMode.checked;
     
     // Ignition supports text color via <font color="...">, but not CSS background highlighting.
     if (colorText) {
@@ -404,6 +501,40 @@ function updateToolbarButtonStates() {
     if (ctxEditTable) ctxEditTable.style.display = isIgnition ? 'none' : 'block';
     if (ctxDividerTable) ctxDividerTable.style.display = isIgnition ? 'none' : 'block';
   }
+}
+
+function stripUnsupportedSpecialModeContent(options = {}) {
+  const selector = options.isIgnition ? IGNITION_STRIP_SELECTORS : SPECIAL_MODE_STRIP_SELECTORS;
+  const unsupported = Array.from(editor.querySelectorAll(selector));
+  
+  unsupported.forEach(node => {
+    const tag = node.tagName.toLowerCase();
+    
+    if (tag === 'hr') {
+      node.replaceWith(document.createElement('br'));
+      return;
+    }
+    
+    if (['audio', 'video', 'iframe', 'embed', 'object', 'input', 'textarea', 'select', 'button'].includes(tag)) {
+      node.remove();
+      return;
+    }
+    
+    const fragment = document.createDocumentFragment();
+    while (node.firstChild) {
+      fragment.appendChild(node.firstChild);
+    }
+    node.replaceWith(fragment);
+  });
+  
+  editor.normalize();
+}
+
+function ensureSupportedModeForAdvancedHtml() {
+  if ((toggleIgnitionMode && toggleIgnitionMode.checked) || isLivePreviewActive) {
+    return false;
+  }
+  return true;
 }
 
 function getIgnitionColorMenu() {
@@ -787,6 +918,108 @@ function setupToolbar() {
     }
   });
 
+  if (fontFamilySelect) {
+    fontFamilySelect.addEventListener('change', () => {
+      if (!ensureSupportedModeForAdvancedHtml()) {
+        fontFamilySelect.selectedIndex = 0;
+        return;
+      }
+      
+      const val = fontFamilySelect.value;
+      if (val) {
+        document.execCommand('fontName', false, val);
+        fontFamilySelect.selectedIndex = 0;
+        editor.focus();
+        updateOutput();
+        saveState();
+      }
+    });
+  }
+
+  [
+    { id: 'btn-subscript', cmd: 'subscript' },
+    { id: 'btn-superscript', cmd: 'superscript' }
+  ].forEach(btn => {
+    const el = document.getElementById(btn.id);
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
+      document.execCommand(btn.cmd, false, null);
+      editor.focus();
+      updateOutput();
+      saveState();
+    });
+  });
+
+  const btnMark = document.getElementById('btn-mark');
+  if (btnMark) {
+    btnMark.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
+      wrapSelectionWithTag('mark', 'marked text');
+    });
+  }
+
+  const btnSmall = document.getElementById('btn-small');
+  if (btnSmall) {
+    btnSmall.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
+      wrapSelectionWithTag('small', 'small text');
+    });
+  }
+
+  const btnInlineCode = document.getElementById('btn-inline-code');
+  if (btnInlineCode) {
+    btnInlineCode.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
+      wrapSelectionWithTag('code', 'inline_code');
+    });
+  }
+
+  const btnCodeBlock = document.getElementById('btn-code-block');
+  if (btnCodeBlock) {
+    btnCodeBlock.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
+      const selectedText = getSavedSelectionText() || 'const value = "example";';
+      insertHTMLAtCursor(`<pre><code>${escapeInlineHTML(selectedText)}</code></pre><p><br></p>`);
+    });
+  }
+
+  const btnHr = document.getElementById('btn-hr');
+  if (btnHr) {
+    btnHr.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
+      insertHTMLAtCursor('<hr><p><br></p>');
+    });
+  }
+
+  const btnBr = document.getElementById('btn-br');
+  if (btnBr) {
+    btnBr.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
+      insertHTMLAtCursor('<br>');
+    });
+  }
+
+  if (insertHtmlElementSelect) {
+    insertHtmlElementSelect.addEventListener('change', () => {
+      if (!ensureSupportedModeForAdvancedHtml()) {
+        insertHtmlElementSelect.selectedIndex = 0;
+        return;
+      }
+      
+      const snippet = INSERT_SNIPPETS[insertHtmlElementSelect.value];
+      insertHtmlElementSelect.selectedIndex = 0;
+      if (snippet) insertHTMLAtCursor(snippet);
+    });
+  }
+
   // Custom Color Pickers
   colorText.addEventListener('click', (e) => {
     e.preventDefault();
@@ -832,15 +1065,71 @@ function setupToolbar() {
 /**
  * Custom insert tools at the current selection cursor
  */
+function restoreSavedSelection() {
+  if (!lastSavedSelection) return;
+  
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(lastSavedSelection);
+}
+
+function getSavedSelectionText() {
+  if (lastSavedSelection && editor.contains(lastSavedSelection.commonAncestorContainer)) {
+    return lastSavedSelection.toString();
+  }
+  return '';
+}
+
+function escapeInlineHTML(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function wrapSelectionWithTag(tagName, fallbackText) {
+  editor.focus();
+  restoreSavedSelection();
+  
+  const sel = window.getSelection();
+  const tag = document.createElement(tagName);
+  
+  if (sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+      if (range.collapsed) {
+        tag.textContent = fallbackText;
+      } else {
+        tag.appendChild(range.extractContents());
+      }
+      range.insertNode(tag);
+      
+      const newRange = document.createRange();
+      newRange.setStartAfter(tag);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      lastSavedSelection = newRange.cloneRange();
+      
+      updateOutput();
+      saveState();
+      return;
+    }
+  }
+  
+  tag.textContent = fallbackText;
+  editor.appendChild(tag);
+  updateOutput();
+  saveState();
+}
+
 function insertHTMLAtCursor(html) {
   editor.focus();
   
   // If we have a saved selection range, restore it
-  if (lastSavedSelection) {
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(lastSavedSelection);
-  }
+  restoreSavedSelection();
 
   const sel = window.getSelection();
   if (sel.rangeCount > 0) {
@@ -893,6 +1182,7 @@ function setupModals() {
     if (btn) {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
+        if (!ensureSupportedModeForAdvancedHtml()) return;
         openModal(trigger.modal);
       });
     }
@@ -902,6 +1192,7 @@ function setupModals() {
   if (btnLink) {
     btnLink.addEventListener('click', (e) => {
       e.preventDefault();
+      if (!ensureSupportedModeForAdvancedHtml()) return;
       
       linkUrlInput.value = '';
       linkTextInput.value = '';

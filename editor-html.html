@@ -88,6 +88,22 @@
       </select>
     </div>
 
+    <div class="tool-select-wrapper">
+      <select id="font-family" class="tool-select" data-tooltip="Safe web font">
+        <option value="" disabled selected>Font</option>
+        <option value="system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif">System</option>
+        <option value="Arial, Helvetica, sans-serif">Arial</option>
+        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+        <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+        <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet</option>
+        <option value="Georgia, Times, serif">Georgia</option>
+        <option value="'Times New Roman', Times, serif">Times</option>
+        <option value="'Courier New', Courier, monospace">Courier</option>
+        <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+        <option value="Impact, Charcoal, sans-serif">Impact</option>
+      </select>
+    </div>
+
     <div class="tool-separator"></div>
 
     <!-- Text Formatting -->
@@ -103,6 +119,21 @@
       </button>
       <button id="btn-strike" class="tool-btn" data-tooltip="Strikethrough">
         <i data-lucide="strikethrough"></i>
+      </button>
+      <button id="btn-subscript" class="tool-btn" data-tooltip="Subscript">
+        <i data-lucide="subscript"></i>
+      </button>
+      <button id="btn-superscript" class="tool-btn" data-tooltip="Superscript">
+        <i data-lucide="superscript"></i>
+      </button>
+      <button id="btn-mark" class="tool-btn" data-tooltip="Highlight Mark">
+        <i data-lucide="highlighter"></i>
+      </button>
+      <button id="btn-small" class="tool-btn" data-tooltip="Small Text">
+        <i data-lucide="case-sensitive"></i>
+      </button>
+      <button id="btn-inline-code" class="tool-btn" data-tooltip="Inline Code">
+        <i data-lucide="code"></i>
       </button>
     </div>
 
@@ -149,10 +180,19 @@
       <button id="btn-blockquote" class="tool-btn" data-tooltip="Blockquote">
         <i data-lucide="quote"></i>
       </button>
+      <button id="btn-code-block" class="tool-btn" data-tooltip="Code Block">
+        <i data-lucide="square-code"></i>
+      </button>
     </div>
 
     <!-- Insertions -->
     <div class="toolbar-group">
+      <button id="btn-hr" class="tool-btn" data-tooltip="Horizontal Rule">
+        <i data-lucide="minus"></i>
+      </button>
+      <button id="btn-br" class="tool-btn" data-tooltip="Line Break">
+        <i data-lucide="corner-down-left"></i>
+      </button>
       <button id="btn-binding" class="tool-btn" data-tooltip="Insert Python Placeholder or Binding">
         <i data-lucide="braces"></i>
       </button>
@@ -165,6 +205,25 @@
       <button id="btn-table" class="tool-btn" data-tooltip="Insert Table">
         <i data-lucide="table"></i>
       </button>
+    </div>
+
+    <div class="tool-select-wrapper">
+      <select id="insert-html-element" class="tool-select" data-tooltip="Insert HTML element">
+        <option value="" disabled selected>Insert</option>
+        <option value="details">Details</option>
+        <option value="figure">Figure</option>
+        <option value="definition-list">Definition List</option>
+        <option value="comment">Comment</option>
+        <option value="section">Section</option>
+        <option value="article">Article</option>
+        <option value="nav">Nav</option>
+        <option value="aside">Aside</option>
+        <option value="address">Address</option>
+        <option value="video">Video</option>
+        <option value="audio">Audio</option>
+        <option value="iframe">Iframe</option>
+        <option value="form">Form</option>
+      </select>
     </div>
   </div>
 

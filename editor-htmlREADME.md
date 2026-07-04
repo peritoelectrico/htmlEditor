@@ -12,6 +12,10 @@ A premium, client-side, real-time WYSIWYG HTML Code Editor. It features an intui
   - Alignment: Left, Center, Right, and Justified text.
   - Custom Color Pickers: Change text color and text background highlighting color.
   - Quotes: Blockquote wrapping blocks.
+  - Inline semantics: Subscript, superscript, marked text, small text, and inline code.
+  - Code blocks, line breaks, horizontal rules, details/summary, figures, definition lists, comments, semantic sections, media embeds, and basic forms.
+  - Safe web font dropdown with common system and web-safe font stacks.
+  - Mode-aware controls: unsupported advanced HTML tools are disabled and stripped when switching into Ignition Mode or Python Interpolation. Italics and full alignment controls remain available in Python Interpolation; Ignition allows Center plus Left to clear centering, while Right/Justify and unsupported formatting are disabled.
 - **Custom Modals:** Premium popups to insert:
   - **Links:** Specify URL and link display text.
   - **Tables:** Custom rows, columns, and optional headers.

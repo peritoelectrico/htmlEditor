@@ -512,6 +512,19 @@ export function wrapInBoilerplate(innerHTML) {
     h3 { font-size: 1.35rem; }
     
     p { margin-bottom: 1.25rem; }
+
+    hr {
+      border: 0;
+      border-top: 1px solid var(--border-color);
+      margin: 1.5rem 0;
+    }
+
+    mark {
+      background-color: #fde68a;
+      color: #111827;
+      padding: 0.05rem 0.2rem;
+      border-radius: 3px;
+    }
     
     a {
       color: var(--accent-color);
@@ -560,6 +573,20 @@ export function wrapInBoilerplate(innerHTML) {
       padding: 0;
       font-size: inherit;
     }
+
+    details {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin: 1.25rem 0;
+      background-color: #f8fafc;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--heading-color);
+    }
     
     table {
       border-collapse: collapse;
@@ -586,6 +613,54 @@ export function wrapInBoilerplate(innerHTML) {
       border-radius: 8px;
       margin: 1.5rem 0;
       display: block;
+    }
+
+    figure {
+      margin: 1.5rem 0;
+    }
+
+    figcaption {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-top: -1rem;
+    }
+
+    video, audio, iframe {
+      display: block;
+      max-width: 100%;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    iframe {
+      width: 100%;
+      min-height: 260px;
+    }
+
+    dl {
+      margin-bottom: 1.25rem;
+    }
+
+    dt {
+      font-weight: 700;
+      color: var(--heading-color);
+    }
+
+    dd {
+      margin-left: 1.25rem;
+      color: #475569;
+    }
+
+    section, article, aside, nav, address, form {
+      margin: 1.5rem 0;
+    }
+
+    input, textarea, select, button {
+      font: inherit;
+      padding: 0.4rem 0.6rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
     }
   </style>
 </head>
